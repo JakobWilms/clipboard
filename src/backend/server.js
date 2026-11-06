@@ -105,7 +105,7 @@ app.use(express.static(distPath, {
 app.get('/healthz', (req, res) => res.json({ status: 'ok' }));
 
 app.get('/api/messages', (req, res) => {
-  db.all('SELECT * FROM messages ORDER BY created_at ASC', [], (error, rows) => {
+  db.all('SELECT * FROM messages ORDER BY id DESC', [], (error, rows) => {
     if (error) return res.status(500).json({ error: 'Unable to load entries' });
     return res.json(rows);
   });

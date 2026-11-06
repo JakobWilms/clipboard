@@ -90,8 +90,8 @@ export default {
       }
     },
     addMessage(message) {
-      this.messages.push(message);
-      this.scrollToBottom();
+      this.messages.unshift(message);
+      this.scrollToTop();
     },
     async deleteMessage(messageId) {
       try {
@@ -105,10 +105,10 @@ export default {
     toggleComposer() {
       this.composerCollapsed = !this.composerCollapsed;
     },
-    scrollToBottom() {
+    scrollToTop() {
       this.$nextTick(() => {
         const entries = this.$refs.chatMessages;
-        if (entries) entries.scrollTo({ top: entries.scrollHeight, behavior: 'smooth' });
+        if (entries) entries.scrollTo({ top: 0, behavior: 'smooth' });
       });
     },
   },
@@ -174,7 +174,9 @@ h1 { color: #0b4038; font-size: 21px; font-weight: 750; letter-spacing: -.45px; 
 .collapse-button:hover { color: #fff; background: var(--primary); transform: translate(-50%, -50%) scale(1.05); }
 .composer-panel.is-collapsed .collapse-button { left: 50%; }
 .entry-list-enter-active, .entry-list-leave-active { transition: opacity .22s ease, transform .22s ease; }
-.entry-list-enter-from, .entry-list-leave-to { opacity: 0; transform: translateY(8px); }
+.entry-list-enter-from { opacity: 0; transform: translateY(-8px); }
+.entry-list-leave-to { opacity: 0; transform: translateY(8px); }
+.entry-list-move { transition: transform .22s ease; }
 @media (max-width: 760px) {
   html, body, #app { overflow: auto; }
   .app-shell { min-height: 100dvh; height: auto; padding: 10px; }
