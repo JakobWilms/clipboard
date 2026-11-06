@@ -8,7 +8,7 @@
         <i class="bi bi-trash3" aria-hidden="true"></i>
       </button>
     </div>
-    <div class="entry-content" v-html="safeMessage"></div>
+    <div ref="content" class="entry-content" v-html="safeMessage"></div>
     <time v-if="formattedDate" class="entry-time" :datetime="createdAt">{{ formattedDate }}</time>
     <span class="visually-hidden" role="status" aria-live="polite">{{ copied ? 'Entry copied to clipboard' : '' }}</span>
   </article>
@@ -42,13 +42,18 @@ export default {
     },
   },
   methods: {
+    // innerText of the rendered entry keeps line breaks (<br>/<div>);
+    // an unrendered DOMParser document would flatten everything onto one line.
+    renderedText() {
+      return this.$refs.content?.innerText || this.plainText;
+    },
     deleteMessage() { this.$emit('deleteMessage', this.id); },
     async copyToClipboard() {
       try {
         if (navigator.clipboard?.write && window.ClipboardItem) {
           await navigator.clipboard.write([new ClipboardItem({
             'text/html': new Blob([this.safeMessage], { type: 'text/html' }),
-            'text/plain': new Blob([this.plainText], { type: 'text/plain' }),
+            'text/plain': new Blob([this.renderedText()], { type: 'text/plain' }),
           })]);
         } else {
           const range = document.createRange();
