@@ -68,7 +68,7 @@ export default {
 </script>
 
 <style>
-.entry-card { position: relative; padding: 17px 58px 14px 17px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); color: var(--text); text-align: left; box-shadow: 0 5px 14px rgba(18,78,66,.06); transition: background .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }
+.entry-card { position: relative; min-height: calc(10px + 36px + 7px + 36px + 10px + 2px); padding: 17px 58px 14px 17px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); color: var(--text); text-align: left; box-shadow: 0 5px 14px rgba(18,78,66,.06); transition: background .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }
 .entry-card:hover { background: #fbfffd; border-color: #8bc9bb; transform: translateY(-2px); box-shadow: 0 10px 24px rgba(18,78,66,.1); }
 .entry-content { min-height: 22px; font-size: 14px; line-height: 1.6; }
 .entry-content > :last-child { margin-bottom: 0; }

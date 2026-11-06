@@ -85,6 +85,10 @@ test('theme declares a light color scheme and reduced-motion support', () => {
   assert.match(app, /skip-link/);
 });
 
+test('entry card is tall enough to contain its stacked action buttons', () => {
+  assert.match(message, /\.entry-card \{[^}]*min-height:/);
+});
+
 test('newest entries are listed first', () => {
   assert.match(server, /ORDER BY id DESC/);
   assert.match(app, /this\.messages\.unshift\(message\)/);
