@@ -153,3 +153,10 @@ test('header Guide button opens a modal user guide with copyable curl commands',
   assert.match(guide, /new URL\('api\/', document\.baseURI\)/);
   assert.match(guide, /latest\.txt/);
 });
+
+test('page has the Clippy tab title and favicon', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /<title>Clippy<\/title>/);
+  assert.match(html, /rel="icon" type="image\/svg\+xml" href="\.\/src\/icons\/favicon\.svg"/);
+  assert.match(html, /rel="apple-touch-icon"/);
+});
