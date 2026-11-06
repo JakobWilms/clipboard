@@ -111,7 +111,7 @@ export default {
       if (this.fetchInFlight) return;
       this.fetchInFlight = true;
       try {
-        const response = await fetch('/api/messages', { cache: 'no-store' });
+        const response = await fetch('api/messages', { cache: 'no-store' });
         if (!response.ok) throw new Error(`Load failed (${response.status})`);
         const rows = await response.json();
         const signature = (list) => list.map((entry) => entry.id).join(',');
@@ -146,7 +146,7 @@ export default {
     },
     async deleteMessage(messageId) {
       try {
-        const response = await fetch(`/api/messages/${messageId}`, { method: 'DELETE' });
+        const response = await fetch(`api/messages/${messageId}`, { method: 'DELETE' });
         if (!response.ok) throw new Error(`Delete failed (${response.status})`);
         this.messages = this.messages.filter((message) => message.id !== messageId);
       } catch (error) {

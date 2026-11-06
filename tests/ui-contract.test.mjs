@@ -7,6 +7,7 @@ const input = readFileSync(new URL('../src/components/ChatInput.vue', import.met
 const message = readFileSync(new URL('../src/components/ChatMessage.vue', import.meta.url), 'utf8');
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const server = readFileSync(new URL('../src/backend/server.js', import.meta.url), 'utf8');
+const vite = readFileSync(new URL('../vite.config.js', import.meta.url), 'utf8');
 const sqlite = readFileSync(new URL('../src/backend/initSQLite.js', import.meta.url), 'utf8');
 
 test('desktop workspace exposes saved entries beside a collapsible composer', () => {
@@ -110,4 +111,9 @@ test('Ctrl+Enter (Cmd+Enter on macOS) in the editor sends the entry', () => {
   assert.match(input, /@keydown\.enter\.ctrl\.exact\.prevent="sendMessage"/);
   assert.match(input, /@keydown\.enter\.meta\.exact\.prevent="sendMessage"/);
   assert.match(input, /aria-keyshortcuts=/);
+});
+
+test('frontend uses relative URLs so it works under a reverse-proxy path prefix', () => {
+  assert.match(vite, /base:\s*'\.\/'/);
+  for (const source of [app, input]) assert.doesNotMatch(source, /fetch\(\s*['`]\/api/);
 });

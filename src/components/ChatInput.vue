@@ -143,7 +143,7 @@ export default {
       this.sending = true;
       this.statusMessage = 'Saving entry';
       try {
-        const response = await fetch('/api/messages', {
+        const response = await fetch('api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: DOMPurify.sanitize(this.message, { ADD_DATA_URI_TAGS: ['img'] }) }),
