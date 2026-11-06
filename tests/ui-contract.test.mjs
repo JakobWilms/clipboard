@@ -89,6 +89,13 @@ test('entry card is tall enough to contain its stacked action buttons', () => {
   assert.match(message, /\.entry-card \{[^}]*min-height:/);
 });
 
+test('saved entries panel has an accessible 3 s auto-refresh toggle', () => {
+  assert.match(app, /class="refresh-toggle"/);
+  assert.match(app, /:aria-pressed="autoRefresh"/);
+  assert.match(app, /AUTO_REFRESH_MS = 3000/);
+  assert.match(app, /clearInterval/);
+});
+
 test('newest entries are listed first', () => {
   assert.match(server, /ORDER BY id DESC/);
   assert.match(app, /this\.messages\.unshift\(message\)/);

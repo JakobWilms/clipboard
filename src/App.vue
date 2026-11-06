@@ -19,7 +19,20 @@
             <span class="eyebrow">Library</span>
             <h2 id="entries-title">Saved entries</h2>
           </div>
-          <span class="entry-count" :aria-label="`${messages.length} saved entries`">{{ messages.length }}</span>
+          <div class="heading-actions">
+            <button
+              class="refresh-toggle"
+              :class="{ 'is-active': autoRefresh }"
+              type="button"
+              :aria-pressed="autoRefresh"
+              :title="autoRefresh ? 'Auto-refresh on (every 3 s) — click to stop' : 'Auto-refresh off — click to refresh every 3 s'"
+              @click="toggleAutoRefresh"
+            >
+              <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+              <span>Auto-refresh</span>
+            </button>
+            <span class="entry-count" :aria-label="`${messages.length} saved entries`">{{ messages.length }}</span>
+          </div>
         </div>
 
         <div class="entries-scroll" ref="chatMessages" aria-live="polite">
@@ -72,22 +85,60 @@ import ChatInput from './components/ChatInput.vue';
 import ChatMessage from './components/ChatMessage.vue';
 
 const APP_VERSION = __APP_VERSION__;
+const AUTO_REFRESH_MS = 3000;
+const AUTO_REFRESH_KEY = 'clippy.autoRefresh';
+
+function readAutoRefreshSetting() {
+  try { return window.localStorage.getItem(AUTO_REFRESH_KEY) === '1'; } catch { return false; }
+}
+
+function writeAutoRefreshSetting(enabled) {
+  try { window.localStorage.setItem(AUTO_REFRESH_KEY, enabled ? '1' : '0'); } catch { /* storage unavailable */ }
+}
 
 export default {
   name: 'App',
   components: { ChatInput, ChatMessage },
   data() {
-    return { messages: [], composerCollapsed: false, version: APP_VERSION };
+    return { messages: [], composerCollapsed: false, version: APP_VERSION, autoRefresh: readAutoRefreshSetting() };
+  },
+  created() {
+    this.refreshTimer = null;
+    this.fetchInFlight = false;
   },
   methods: {
     async fetchMessages() {
+      if (this.fetchInFlight) return;
+      this.fetchInFlight = true;
       try {
-        const response = await fetch('/api/messages');
+        const response = await fetch('/api/messages', { cache: 'no-store' });
         if (!response.ok) throw new Error(`Load failed (${response.status})`);
-        this.messages = await response.json();
+        const rows = await response.json();
+        const signature = (list) => list.map((entry) => entry.id).join(',');
+        if (signature(rows) !== signature(this.messages)) this.messages = rows;
       } catch (error) {
         console.error('Unable to fetch entries:', error);
+      } finally {
+        this.fetchInFlight = false;
       }
+    },
+    toggleAutoRefresh() {
+      this.autoRefresh = !this.autoRefresh;
+      writeAutoRefreshSetting(this.autoRefresh);
+      this.applyAutoRefresh();
+      if (this.autoRefresh) this.fetchMessages();
+    },
+    applyAutoRefresh() {
+      window.clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+      if (this.autoRefresh) {
+        this.refreshTimer = window.setInterval(() => {
+          if (!document.hidden) this.fetchMessages();
+        }, AUTO_REFRESH_MS);
+      }
+    },
+    onVisibilityChange() {
+      if (this.autoRefresh && !document.hidden) this.fetchMessages();
     },
     addMessage(message) {
       this.messages.unshift(message);
@@ -112,7 +163,15 @@ export default {
       });
     },
   },
-  mounted() { this.fetchMessages(); },
+  mounted() {
+    this.fetchMessages();
+    this.applyAutoRefresh();
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+  },
+  beforeUnmount() {
+    window.clearInterval(this.refreshTimer);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+  },
 };
 </script>
 
@@ -159,6 +218,13 @@ h1 { color: #0b4038; font-size: 21px; font-weight: 750; letter-spacing: -.45px; 
 .panel-heading h2 { font-size: 18px; font-weight: 740; letter-spacing: -.3px; }
 .eyebrow { display: block; margin-bottom: 3px; color: var(--primary-dark); font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
 .entry-count { display: grid; place-items: center; min-width: 30px; height: 30px; padding: 0 9px; border: 1px solid #9bd8cb; border-radius: 999px; background: var(--primary-soft); color: var(--primary-dark); font-size: 12px; font-weight: 800; }
+.heading-actions { display: flex; align-items: center; gap: 10px; }
+.refresh-toggle { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); background: var(--surface-soft); font-size: 12px; font-weight: 700; cursor: pointer; transition: color .18s ease, background .18s ease, border-color .18s ease; }
+.refresh-toggle:hover { color: var(--primary-dark); border-color: #83c5b6; background: var(--surface-hover); }
+.refresh-toggle.is-active { color: #fff; border-color: var(--primary); background: var(--primary); }
+.refresh-toggle.is-active:hover { background: var(--primary-dark); }
+.refresh-toggle.is-active .bi-arrow-repeat { animation: refresh-spin 3s linear infinite; }
+@keyframes refresh-spin { to { transform: rotate(360deg); } }
 .entries-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; scroll-behavior: smooth; scrollbar-color: #7bb9ab transparent; }
 .entries-list { display: grid; gap: 12px; }
 .empty-state { height: 100%; min-height: 220px; display: grid; place-content: center; justify-items: center; padding: 24px; text-align: center; color: var(--muted); }
