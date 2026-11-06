@@ -101,3 +101,7 @@ test('newest entries are listed first', () => {
   assert.match(app, /this\.messages\.unshift\(message\)/);
   assert.doesNotMatch(app, /this\.messages\.push\(message\)/);
 });
+
+test('entry timestamps are returned as explicit UTC ISO strings', () => {
+  assert.match(server, /strftime\('%Y-%m-%dT%H:%M:%SZ', created_at\) AS created_at/);
+});

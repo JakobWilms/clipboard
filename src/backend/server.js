@@ -105,7 +105,8 @@ app.use(express.static(distPath, {
 app.get('/healthz', (req, res) => res.json({ status: 'ok' }));
 
 app.get('/api/messages', (req, res) => {
-  db.all('SELECT * FROM messages ORDER BY id DESC', [], (error, rows) => {
+  // SQLite CURRENT_TIMESTAMP is UTC but has no zone marker; browsers would parse it as local time.
+  db.all("SELECT id, message, strftime('%Y-%m-%dT%H:%M:%SZ', created_at) AS created_at FROM messages ORDER BY id DESC", [], (error, rows) => {
     if (error) return res.status(500).json({ error: 'Unable to load entries' });
     return res.json(rows);
   });
