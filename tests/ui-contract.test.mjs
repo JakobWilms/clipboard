@@ -5,6 +5,7 @@ import test from 'node:test';
 const app = readFileSync(new URL('../src/App.vue', import.meta.url), 'utf8');
 const input = readFileSync(new URL('../src/components/ChatInput.vue', import.meta.url), 'utf8');
 const message = readFileSync(new URL('../src/components/ChatMessage.vue', import.meta.url), 'utf8');
+const guide = readFileSync(new URL('../src/components/UserGuide.vue', import.meta.url), 'utf8');
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const server = readFileSync(new URL('../src/backend/server.js', import.meta.url), 'utf8');
 const vite = readFileSync(new URL('../vite.config.js', import.meta.url), 'utf8');
@@ -141,4 +142,14 @@ test('CLI detection recognises prompts, shell and config but not prose', async (
   assert.equal(looksLikeCliOutput('while true; do\n  echo "x" | grep x\ndone'), true);
   assert.equal(looksLikeCliOutput('Hello team,\nplease find the notes below.\nThanks'), false);
   assert.equal(looksLikeCliOutput('good job'), false);
+});
+
+test('header Guide button opens a modal user guide with copyable curl commands', () => {
+  assert.match(app, /class="guide-button"[^>]*aria-haspopup="dialog"/);
+  assert.match(app, /<UserGuide ref="guide"/);
+  assert.match(guide, /<dialog/);
+  assert.match(guide, /showModal\(\)/);
+  assert.match(guide, /aria-label="Close guide"/);
+  assert.match(guide, /new URL\('api\/', document\.baseURI\)/);
+  assert.match(guide, /latest\.txt/);
 });

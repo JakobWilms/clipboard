@@ -9,7 +9,12 @@
           <p>Your shared clipboard, ready everywhere.</p>
         </div>
       </div>
-      <span class="version-badge" aria-label="Application version">v{{ version }}</span>
+      <div class="header-actions">
+        <button class="guide-button" type="button" aria-haspopup="dialog" @click="$refs.guide.open()">
+          <i class="bi bi-question-circle" aria-hidden="true"></i> Guide
+        </button>
+        <span class="version-badge" aria-label="Application version">v{{ version }}</span>
+      </div>
     </header>
 
     <section class="workspace" :class="{ 'composer-collapsed': composerCollapsed }">
@@ -79,6 +84,7 @@
         </div>
       </aside>
     </section>
+    <UserGuide ref="guide" :retention="retention" />
     <div v-if="undoId !== null" class="undo-toast" role="status">
       <i class="bi bi-trash3" aria-hidden="true"></i>
       <span>Entry #{{ undoId }} deleted</span>
@@ -91,6 +97,7 @@
 <script>
 import ChatInput from './components/ChatInput.vue';
 import ChatMessage from './components/ChatMessage.vue';
+import UserGuide from './components/UserGuide.vue';
 
 const APP_VERSION = __APP_VERSION__;
 const AUTO_REFRESH_MS = 3000;
@@ -107,7 +114,7 @@ function writeAutoRefreshSetting(enabled) {
 
 export default {
   name: 'App',
-  components: { ChatInput, ChatMessage },
+  components: { ChatInput, ChatMessage, UserGuide },
   data() {
     return { messages: [], composerCollapsed: false, version: APP_VERSION, autoRefresh: readAutoRefreshSetting(), retention: '', undoId: null };
   },
@@ -267,7 +274,10 @@ button:focus-visible, [contenteditable]:focus-visible, a:focus-visible { outline
 h1, h2, h3, p { margin: 0; }
 h1 { color: #0b4038; font-size: 21px; font-weight: 750; letter-spacing: -.45px; }
 .brand p { color: var(--muted); font-size: 13px; margin-top: 2px; }
-.version-badge { align-self: flex-start; padding: 6px 10px; border: 1px solid #e8b69f; border-radius: 999px; background: var(--secondary-soft); color: #8f321d; font: 700 11px/1 ui-monospace, monospace; }
+.header-actions { align-self: flex-start; display: flex; align-items: center; gap: 10px; }
+.guide-button { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 1px solid #9bd8cb; border-radius: 999px; color: var(--primary-dark); background: rgba(255,255,255,.8); font-size: 12px; font-weight: 700; cursor: pointer; transition: color .18s ease, background .18s ease; }
+.guide-button:hover { color: #fff; background: var(--primary); border-color: var(--primary); }
+.version-badge { padding: 6px 10px; border: 1px solid #e8b69f; border-radius: 999px; background: var(--secondary-soft); color: #8f321d; font: 700 11px/1 ui-monospace, monospace; }
 .workspace { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 42%); gap: 14px; transition: grid-template-columns .35s cubic-bezier(.2,.8,.2,1); }
 .workspace.composer-collapsed { grid-template-columns: minmax(0, 1fr) 56px; }
 .entries-panel, .composer-panel { min-width: 0; min-height: 0; border: 1px solid var(--border); border-radius: 20px; background: rgba(255,255,255,.94); box-shadow: 0 18px 45px rgba(22,88,74,.12); overflow: hidden; }
