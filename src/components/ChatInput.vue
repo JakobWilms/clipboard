@@ -29,12 +29,14 @@
         @keyup="saveSelection"
         @mouseup="saveSelection"
         @paste="handlePaste"
+        @keydown.enter.ctrl.exact.prevent="sendMessage"
+        @keydown.enter.meta.exact.prevent="sendMessage"
       ></div>
     </div>
     <div class="composer-actions">
-      <span class="composer-hint"><i class="bi bi-image" aria-hidden="true"></i> Text, formatting &amp; images</span>
+      <span class="composer-hint"><i class="bi bi-image" aria-hidden="true"></i> Text, formatting &amp; images · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to send</span>
       <span class="visually-hidden" role="status" aria-live="polite">{{ statusMessage }}</span>
-      <button class="send-button" type="button" :disabled="sending || !hasContent" @click="sendMessage">
+      <button class="send-button" type="button" aria-keyshortcuts="Control+Enter Meta+Enter" title="Send entry (Ctrl+Enter)" :disabled="sending || !hasContent" @click="sendMessage">
         <i :class="sending ? 'bi bi-arrow-repeat spin' : 'bi bi-send-fill'" aria-hidden="true"></i>
         {{ sending ? 'Saving…' : 'Send entry' }}
       </button>
@@ -178,6 +180,7 @@ export default {
 .composer-actions { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .composer-hint { color: var(--muted); font-size: 12px; }
 .composer-hint i { margin-right: 6px; color: var(--secondary); }
+.composer-hint kbd { padding: 1px 5px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; background: var(--surface-soft); color: var(--text); font: 600 11px/1.4 ui-monospace, monospace; }
 .send-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-width: 136px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; color: #fff; background: linear-gradient(135deg, var(--primary), var(--secondary)); font-size: 14px; font-weight: 700; box-shadow: 0 10px 24px rgba(13,148,136,.25); cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
 .send-button:hover:not(:disabled) { color: #fff; filter: saturate(1.1) brightness(.97); transform: translateY(-2px); box-shadow: 0 14px 28px rgba(13,148,136,.32); }
 .send-button:disabled { color: #667085; background: #e4e7ec; box-shadow: none; cursor: not-allowed; }

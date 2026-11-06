@@ -105,3 +105,9 @@ test('newest entries are listed first', () => {
 test('entry timestamps are returned as explicit UTC ISO strings', () => {
   assert.match(server, /strftime\('%Y-%m-%dT%H:%M:%SZ', created_at\) AS created_at/);
 });
+
+test('Ctrl+Enter (Cmd+Enter on macOS) in the editor sends the entry', () => {
+  assert.match(input, /@keydown\.enter\.ctrl\.exact\.prevent="sendMessage"/);
+  assert.match(input, /@keydown\.enter\.meta\.exact\.prevent="sendMessage"/);
+  assert.match(input, /aria-keyshortcuts=/);
+});
