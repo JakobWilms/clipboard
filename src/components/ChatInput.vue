@@ -46,6 +46,7 @@
 
 <script>
 import DOMPurify from 'dompurify';
+import { looksLikeCliOutput } from '../cliDetect.mjs';
 
 export default {
   emits: ['sendMessage'],
@@ -146,7 +147,10 @@ export default {
         const response = await fetch('api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: DOMPurify.sanitize(this.message, { ADD_DATA_URI_TAGS: ['img'] }) }),
+          body: JSON.stringify({
+            text: DOMPurify.sanitize(this.message, { ADD_DATA_URI_TAGS: ['img'] }),
+            mono: !/<img\b/i.test(this.message) && looksLikeCliOutput(this.$refs.editor.innerText),
+          }),
         });
         if (!response.ok) throw new Error(`Save failed (${response.status})`);
         const data = await response.json();

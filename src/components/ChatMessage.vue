@@ -1,5 +1,13 @@
 <template>
-  <article class="entry-card">
+  <article class="entry-card" :class="{ 'is-mono': mono }">
+    <header class="entry-meta">
+      <button class="entry-id" type="button" :title="`Copy pull command: ${curlCommand}`" :aria-label="`Entry ${id}: copy curl pull command`" @click="copyCurl">#{{ id }}</button>
+      <time v-if="formattedDate" class="entry-time" :datetime="createdAt">{{ formattedDate }}</time>
+      <button class="mono-toggle" type="button" :aria-pressed="mono" :title="mono ? 'Monospace on: click for normal text' : 'Show as monospace (CLI output)'" @click="$emit('toggleMono', id, !mono)">
+        <i class="bi bi-terminal" aria-hidden="true"></i> Mono
+      </button>
+      <span v-if="curlCopied" class="meta-flash" aria-hidden="true">curl command copied</span>
+    </header>
     <div class="entry-actions">
       <button class="icon-button copy-button" type="button" aria-label="Copy entry" :title="copied ? 'Copied' : 'Copy entry'" @click="copyToClipboard">
         <i :class="copied ? 'bi bi-check-lg' : 'bi bi-copy'" aria-hidden="true"></i>
@@ -8,9 +16,12 @@
         <i class="bi bi-trash3" aria-hidden="true"></i>
       </button>
     </div>
-    <div ref="content" class="entry-content" v-html="safeMessage"></div>
-    <time v-if="formattedDate" class="entry-time" :datetime="createdAt">{{ formattedDate }}</time>
-    <span class="visually-hidden" role="status" aria-live="polite">{{ copied ? 'Entry copied to clipboard' : '' }}</span>
+    <div ref="content" class="entry-content" :class="{ 'is-clamped': !expanded, 'has-more': overflowing && !expanded }" v-html="safeMessage"></div>
+    <button v-if="overflowing" class="expand-toggle" type="button" :aria-expanded="expanded" @click="expanded = !expanded">
+      <i :class="expanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" aria-hidden="true"></i>
+      {{ expanded ? 'Show less' : 'Show more' }}
+    </button>
+    <span class="visually-hidden" role="status" aria-live="polite">{{ copied ? 'Entry copied to clipboard' : curlCopied ? 'curl command copied' : '' }}</span>
   </article>
 </template>
 
@@ -22,9 +33,10 @@ export default {
     message: { type: String, required: true },
     id: { type: Number, required: true },
     createdAt: { type: String, default: '' },
+    mono: { type: Boolean, default: false },
   },
-  emits: ['deleteMessage'],
-  data() { return { copied: false }; },
+  emits: ['deleteMessage', 'toggleMono'],
+  data() { return { copied: false, curlCopied: false, expanded: false, overflowing: false }; },
   computed: {
     safeMessage() {
       const sanitized = DOMPurify.sanitize(this.message, { ADD_DATA_URI_TAGS: ['img'] });
@@ -36,13 +48,55 @@ export default {
       const fragment = new DOMParser().parseFromString(this.safeMessage, 'text/html');
       return fragment.body.innerText || fragment.body.textContent || '';
     },
+    curlCommand() {
+      return `curl -sk ${new URL(`api/messages/${this.id}.txt`, document.baseURI).href}`;
+    },
     formattedDate() {
       const date = new Date(this.createdAt);
       return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
     },
   },
+  watch: {
+    safeMessage() { this.$nextTick(this.measure); },
+    mono() { this.$nextTick(this.measure); },
+  },
+  mounted() {
+    this.measure();
+    if (window.ResizeObserver) {
+      this.resizeObserver = new ResizeObserver(() => this.measure());
+      this.resizeObserver.observe(this.$refs.content);
+    }
+  },
+  beforeUnmount() {
+    this.resizeObserver?.disconnect();
+  },
   methods: {
-    // innerText of the rendered entry keeps line breaks (<br>/<div>);
+    // Overflow can only be measured while clamped; once expanded keep the toggle visible.
+    measure() {
+      const content = this.$refs.content;
+      if (!content || this.expanded) return;
+      this.overflowing = content.scrollHeight > content.clientHeight + 2;
+    },
+    async copyCurl() {
+      try {
+        if (navigator.clipboard?.writeText && window.isSecureContext) {
+          await navigator.clipboard.writeText(this.curlCommand);
+        } else {
+          const area = document.createElement('textarea');
+          area.value = this.curlCommand;
+          area.setAttribute('readonly', '');
+          area.style.position = 'fixed';
+          area.style.opacity = '0';
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand('copy');
+          area.remove();
+        }
+        this.curlCopied = true;
+        window.setTimeout(() => { this.curlCopied = false; }, 1600);
+      } catch (error) { console.error('Unable to copy curl command:', error); }
+    },
+    // innerText of the rendered entry keeps line breaks (<br>/<div>) and, in mono mode, spacing;
     // an unrendered DOMParser document would flatten everything onto one line.
     renderedText() {
       return this.$refs.content?.innerText || this.plainText;
@@ -86,5 +140,17 @@ export default {
 .copy-button:has(.bi-check-lg) { color: #fff; background: var(--primary); }
 .delete-button { color: var(--danger); }
 .delete-button:hover { color: #fff; background: var(--danger); }
-.entry-time { display: block; margin-top: 11px; color: var(--muted); font-size: 11px; }
+.entry-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 22px; margin: -5px 0 9px; color: var(--muted); font-size: 11px; }
+.entry-id { padding: 1px 8px; border: 1px solid #9bd8cb; border-radius: 999px; color: var(--primary-dark); background: var(--primary-soft); font: 800 11px/1.5 ui-monospace, monospace; cursor: pointer; transition: color .18s ease, background .18s ease; }
+.entry-id:hover { color: #fff; background: var(--primary); }
+.entry-time { color: var(--muted); font-size: 11px; }
+.mono-toggle { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); background: transparent; font-size: 11px; font-weight: 700; line-height: 1.5; cursor: pointer; transition: color .18s ease, background .18s ease, border-color .18s ease; }
+.mono-toggle:hover { color: var(--primary-dark); border-color: #83c5b6; }
+.mono-toggle[aria-pressed="true"] { color: #fff; border-color: #12332e; background: #12332e; }
+.meta-flash { color: var(--primary-dark); font-weight: 700; }
+.entry-content.is-clamped { max-height: 32em; max-height: 20lh; overflow: hidden; }
+.entry-content.has-more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 3em), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 3em), transparent); }
+.entry-card.is-mono .entry-content { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; tab-size: 4; }
+.expand-toggle { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--primary-dark); background: var(--surface-soft); font-size: 12px; font-weight: 700; cursor: pointer; }
+.expand-toggle:hover { color: #fff; background: var(--primary); border-color: var(--primary); }
 </style>

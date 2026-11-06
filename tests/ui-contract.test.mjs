@@ -117,3 +117,28 @@ test('frontend uses relative URLs so it works under a reverse-proxy path prefix'
   assert.match(vite, /base:\s*'\.\/'/);
   for (const source of [app, input]) assert.doesNotMatch(source, /fetch\(\s*['`]\/api/);
 });
+
+test('entries show #id with a curl pull command, a mono toggle and a collapse control', () => {
+  assert.match(message, /class="entry-id"/);
+  assert.match(message, /api\/messages\/\$\{this\.id\}\.txt/);
+  assert.match(message, /class="mono-toggle"[^>]*:aria-pressed="mono"/);
+  assert.match(message, /class="expand-toggle"[^>]*:aria-expanded="expanded"/);
+  assert.match(message, /max-height: 20lh/);
+  assert.match(message, /\$refs\.content\?\.innerText/);
+});
+
+test('deletes can be undone and new CLI-looking entries are sent as monospace', () => {
+  assert.match(app, /class="undo-toast"/);
+  assert.match(app, /\/restore`/);
+  assert.match(input, /looksLikeCliOutput\(this\.\$refs\.editor\.innerText\)/);
+});
+
+test('CLI detection recognises prompts, shell and config but not prose', async () => {
+  const { looksLikeCliOutput } = await import('../src/cliDetect.mjs');
+  assert.equal(looksLikeCliOutput('A:admin@pe1# show router interface\n===\nInterface Table\n==='), true);
+  assert.equal(looksLikeCliOutput('[ex:/configure router "Base"]\n    interface "system" {\n    }'), true);
+  assert.equal(looksLikeCliOutput('root@OpenWrt:~# uci show network'), true);
+  assert.equal(looksLikeCliOutput('while true; do\n  echo "x" | grep x\ndone'), true);
+  assert.equal(looksLikeCliOutput('Hello team,\nplease find the notes below.\nThanks'), false);
+  assert.equal(looksLikeCliOutput('good job'), false);
+});

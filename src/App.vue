@@ -16,7 +16,7 @@
       <section id="saved-entries" class="entries-panel" aria-labelledby="entries-title" tabindex="-1">
         <div class="panel-heading">
           <div>
-            <span class="eyebrow">Library</span>
+            <span class="eyebrow">Library<template v-if="retention && retention !== 'off'"> · kept {{ retention }}</template></span>
             <h2 id="entries-title">Saved entries</h2>
           </div>
           <div class="heading-actions">
@@ -43,7 +43,9 @@
               :id="message.id"
               :message="message.message"
               :created-at="message.created_at"
+              :mono="Boolean(message.mono)"
               @deleteMessage="deleteMessage"
+              @toggleMono="toggleMono"
             />
           </TransitionGroup>
           <div v-else class="empty-state">
@@ -77,6 +79,12 @@
         </div>
       </aside>
     </section>
+    <div v-if="undoId !== null" class="undo-toast" role="status">
+      <i class="bi bi-trash3" aria-hidden="true"></i>
+      <span>Entry #{{ undoId }} deleted</span>
+      <button class="undo-button" type="button" @click="undoDelete">Undo</button>
+      <button class="toast-close" type="button" aria-label="Dismiss" @click="dismissUndo"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+    </div>
   </main>
 </template>
 
@@ -87,6 +95,7 @@ import ChatMessage from './components/ChatMessage.vue';
 const APP_VERSION = __APP_VERSION__;
 const AUTO_REFRESH_MS = 3000;
 const AUTO_REFRESH_KEY = 'clippy.autoRefresh';
+const UNDO_TOAST_MS = 8000;
 
 function readAutoRefreshSetting() {
   try { return window.localStorage.getItem(AUTO_REFRESH_KEY) === '1'; } catch { return false; }
@@ -100,10 +109,11 @@ export default {
   name: 'App',
   components: { ChatInput, ChatMessage },
   data() {
-    return { messages: [], composerCollapsed: false, version: APP_VERSION, autoRefresh: readAutoRefreshSetting() };
+    return { messages: [], composerCollapsed: false, version: APP_VERSION, autoRefresh: readAutoRefreshSetting(), retention: '', undoId: null };
   },
   created() {
     this.refreshTimer = null;
+    this.undoTimer = null;
     this.fetchInFlight = false;
   },
   methods: {
@@ -114,7 +124,7 @@ export default {
         const response = await fetch('api/messages', { cache: 'no-store' });
         if (!response.ok) throw new Error(`Load failed (${response.status})`);
         const rows = await response.json();
-        const signature = (list) => list.map((entry) => entry.id).join(',');
+        const signature = (list) => list.map((entry) => `${entry.id}:${entry.mono ? 1 : 0}`).join(',');
         if (signature(rows) !== signature(this.messages)) this.messages = rows;
       } catch (error) {
         console.error('Unable to fetch entries:', error);
@@ -147,11 +157,57 @@ export default {
     async deleteMessage(messageId) {
       try {
         const response = await fetch(`api/messages/${messageId}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error(`Delete failed (${response.status})`);
+        if (!response.ok && response.status !== 404) throw new Error(`Delete failed (${response.status})`);
         this.messages = this.messages.filter((message) => message.id !== messageId);
+        if (response.ok) this.offerUndo(messageId);
       } catch (error) {
         console.error('Unable to delete entry:', error);
       }
+    },
+    offerUndo(messageId) {
+      window.clearTimeout(this.undoTimer);
+      this.undoId = messageId;
+      this.undoTimer = window.setTimeout(this.dismissUndo, UNDO_TOAST_MS);
+    },
+    dismissUndo() {
+      window.clearTimeout(this.undoTimer);
+      this.undoId = null;
+    },
+    async undoDelete() {
+      const messageId = this.undoId;
+      this.dismissUndo();
+      if (messageId === null) return;
+      try {
+        const response = await fetch(`api/messages/${messageId}/restore`, { method: 'POST' });
+        if (!response.ok) throw new Error(`Restore failed (${response.status})`);
+        const entry = await response.json();
+        this.messages = [...this.messages.filter((message) => message.id !== entry.id), entry].sort((a, b) => b.id - a.id);
+      } catch (error) {
+        console.error('Unable to restore entry:', error);
+      }
+    },
+    async toggleMono(messageId, mono) {
+      const target = this.messages.find((message) => message.id === messageId);
+      if (!target) return;
+      const previous = target.mono;
+      target.mono = mono;
+      try {
+        const response = await fetch(`api/messages/${messageId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mono }),
+        });
+        if (!response.ok) throw new Error(`Update failed (${response.status})`);
+      } catch (error) {
+        target.mono = previous;
+        console.error('Unable to update entry:', error);
+      }
+    },
+    async fetchConfig() {
+      try {
+        const response = await fetch('api/config');
+        if (response.ok) this.retention = (await response.json()).retention || '';
+      } catch { /* optional */ }
     },
     toggleComposer() {
       this.composerCollapsed = !this.composerCollapsed;
@@ -165,11 +221,13 @@ export default {
   },
   mounted() {
     this.fetchMessages();
+    this.fetchConfig();
     this.applyAutoRefresh();
     document.addEventListener('visibilitychange', this.onVisibilityChange);
   },
   beforeUnmount() {
     window.clearInterval(this.refreshTimer);
+    window.clearTimeout(this.undoTimer);
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
   },
 };
@@ -225,6 +283,12 @@ h1 { color: #0b4038; font-size: 21px; font-weight: 750; letter-spacing: -.45px; 
 .refresh-toggle.is-active:hover { background: var(--primary-dark); }
 .refresh-toggle.is-active .bi-arrow-repeat { animation: refresh-spin 3s linear infinite; }
 @keyframes refresh-spin { to { transform: rotate(360deg); } }
+.undo-toast { position: fixed; z-index: 50; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px; border-radius: 14px; color: #fff; background: #12332e; box-shadow: 0 14px 34px rgba(18,51,46,.35); font-size: 13px; }
+.undo-toast > .bi-trash3 { color: #ffb4a1; }
+.undo-button { padding: 6px 14px; border: 0; border-radius: 9px; color: #12332e; background: #d6f5ec; font-weight: 800; cursor: pointer; }
+.undo-button:hover { background: #fff; }
+.toast-close { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 8px; color: #b8d8d0; background: transparent; cursor: pointer; }
+.toast-close:hover { color: #fff; background: rgba(255,255,255,.12); }
 .entries-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; scroll-behavior: smooth; scrollbar-color: #7bb9ab transparent; }
 .entries-list { display: grid; gap: 12px; }
 .empty-state { height: 100%; min-height: 220px; display: grid; place-content: center; justify-items: center; padding: 24px; text-align: center; color: var(--muted); }
