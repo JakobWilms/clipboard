@@ -166,7 +166,7 @@ export default {
 <style>
 .chat-input { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 16px; gap: 14px; }
 .visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
-.composer-editor { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: var(--surface); box-shadow: inset 0 1px 0 rgba(255,255,255,.75); }
+.composer-editor { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: var(--surface); box-shadow: inset 0 1px 0 var(--editor-highlight); }
 .editor-toolbar { flex: 0 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; padding: 9px; border-bottom: 1px solid var(--border); background: var(--surface-soft); }
 .tool-button { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 9px; color: var(--muted); background: transparent; cursor: pointer; transition: color .18s ease, background .18s ease, transform .18s ease; }
 .tool-button:hover { color: var(--primary-dark); background: var(--primary-soft); transform: translateY(-1px); }
@@ -178,9 +178,9 @@ export default {
 .composer-actions { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .composer-hint { color: var(--muted); font-size: 12px; }
 .composer-hint i { margin-right: 6px; color: var(--secondary); }
-.send-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-width: 136px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; color: #fff; background: linear-gradient(135deg, var(--primary), var(--secondary)); font-size: 14px; font-weight: 700; box-shadow: 0 10px 24px rgba(13,148,136,.25); cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
-.send-button:hover:not(:disabled) { color: #fff; filter: saturate(1.1) brightness(.97); transform: translateY(-2px); box-shadow: 0 14px 28px rgba(13,148,136,.32); }
-.send-button:disabled { color: #667085; background: #e4e7ec; box-shadow: none; cursor: not-allowed; }
+.send-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-width: 136px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; color: #fff; background: linear-gradient(135deg, var(--primary), var(--secondary)); font-size: 14px; font-weight: 700; box-shadow: 0 10px 24px var(--shadow-primary); cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, filter .18s ease; }
+.send-button:hover:not(:disabled) { color: #fff; filter: saturate(1.1) brightness(.97); transform: translateY(-2px); box-shadow: 0 14px 28px var(--shadow-primary-hover); }
+.send-button:disabled { color: var(--btn-disabled-text); background: var(--btn-disabled-bg); box-shadow: none; cursor: not-allowed; }
 .spin { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 480px) { .composer-hint { display: none; } .send-button { width: 100%; } }
