@@ -129,6 +129,14 @@ labels:
 | `MAX_DATABASE_BYTES` | `262144000` | Total storage limit |
 | `PORT` | `3000` | Listening port |
 
+## Release
+
+Current application version: **1.4.0**. The two minor releases add dark mode and the lab workflow improvements (terminal API, auto-refresh, retention, soft-delete undo, monospace entries, and the in-app guide).
+
+## Security
+
+The dependency lockfile pins patched releases for all known production advisories. In particular, Express's transitive `body-parser` dependency is overridden to `2.4.0`, preventing unauthenticated denial of service through malformed compressed request bodies (GHSA-27r3-jxmh-p828).
+
 ## License
 
 This project is licensed under the GNU GPLv3 License.

@@ -22,7 +22,7 @@ test('desktop workspace exposes saved entries beside a collapsible composer', ()
 test('version is sourced from package metadata and shown as a badge', () => {
   assert.match(app, /APP_VERSION/);
   assert.match(app, /version-badge/);
-  assert.equal(pkg.version, '1.2.0');
+  assert.equal(pkg.version, '1.4.0');
 });
 
 test('composer is a full-height flex column with a bottom action', () => {

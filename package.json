@@ -1,6 +1,6 @@
 {
   "name": "clipboard",
-  "version": "1.2.0",
+  "version": "1.4.0",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -16,6 +16,9 @@
     "express": "^5.1.0",
     "sqlite3": "^6.0.1",
     "vue": "^3.5.42"
+  },
+  "overrides": {
+    "body-parser": "2.4.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",

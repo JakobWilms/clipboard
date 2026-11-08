@@ -23,7 +23,7 @@ test('desktop layout fills viewport and keeps composer action visible', async ({
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page.locator('.entries-panel')).toBeVisible();
   await expect(page.locator('.composer-panel')).toBeVisible();
-  await expect(page.getByText(/^v1\.2\.0$/)).toBeVisible();
+  await expect(page.getByText(/^v1\.4\.0$/)).toBeVisible();
   const entries = await page.locator('.entries-panel').boundingBox();
   const composer = await page.locator('.composer-panel').boundingBox();
   const send = await page.getByRole('button', { name: 'Send entry' }).boundingBox();
