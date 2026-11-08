@@ -79,8 +79,10 @@ test('native rich editor has an accessible toolbar and live status', () => {
   assert.doesNotMatch(input, /@mousedown\.prevent="applyFormat/);
 });
 
-test('theme declares a light color scheme and reduced-motion support', () => {
+test('theme declares color schemes, toggle function, and reduced-motion support', () => {
   assert.match(app, /color-scheme:\s*light/);
+  assert.match(app, /color-scheme:\s*dark/);
+  assert.match(app, /toggleTheme/);
   assert.match(app, /prefers-reduced-motion:\s*reduce/);
   assert.match(app, /skip-link/);
 });

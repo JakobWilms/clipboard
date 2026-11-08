@@ -68,13 +68,13 @@ export default {
 </script>
 
 <style>
-.entry-card { position: relative; padding: 17px 58px 14px 17px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); color: var(--text); text-align: left; box-shadow: 0 5px 14px rgba(18,78,66,.06); transition: background .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }
-.entry-card:hover { background: #fbfffd; border-color: #8bc9bb; transform: translateY(-2px); box-shadow: 0 10px 24px rgba(18,78,66,.1); }
+.entry-card { position: relative; padding: 17px 58px 14px 17px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); color: var(--text); text-align: left; box-shadow: 0 5px 14px var(--shadow-soft); transition: background .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }
+.entry-card:hover { background: var(--surface-hover); border-color: var(--border-highlight); transform: translateY(-2px); box-shadow: 0 10px 24px var(--shadow-medium); }
 .entry-content { min-height: 22px; font-size: 14px; line-height: 1.6; }
 .entry-content > :last-child { margin-bottom: 0; }
 .entry-content a { color: var(--primary-dark); text-decoration-thickness: 2px; text-underline-offset: 2px; }
 .entry-content img { display: block; max-width: 100%; height: auto; margin: 8px 0; border-radius: 10px; }
-.entry-content pre { max-width: 100%; overflow: auto; padding: 12px; border-radius: 9px; color: #effcf8; background: #12332e; }
+.entry-content pre { max-width: 100%; overflow: auto; padding: 12px; border-radius: 9px; color: var(--pre-text); background: var(--pre-bg); }
 .entry-actions { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 7px; }
 .icon-button { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid var(--border); border-radius: 10px; color: var(--primary-dark); background: var(--surface-soft); cursor: pointer; transition: color .18s ease, background .18s ease, transform .18s ease; }
 .icon-button:hover { color: #fff; background: var(--primary); transform: scale(1.05); }

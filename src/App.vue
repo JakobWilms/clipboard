@@ -10,6 +10,9 @@
         </div>
       </div>
       <span class="version-badge" aria-label="Application version">v{{ version }}</span>
+      <button class="theme-toggle" type="button" :aria-label="darkMode ? 'Switch to light mode' : 'Switch to dark mode'" @click="toggleTheme">
+        <i :class="darkMode ? 'bi bi-sun' : 'bi bi-moon'" aria-hidden="true"></i>
+      </button>
     </header>
 
     <section class="workspace" :class="{ 'composer-collapsed': composerCollapsed }">
@@ -77,7 +80,7 @@ export default {
   name: 'App',
   components: { ChatInput, ChatMessage },
   data() {
-    return { messages: [], composerCollapsed: false, version: APP_VERSION };
+    return { messages: [], composerCollapsed: false, version: APP_VERSION, darkMode: false };
   },
   methods: {
     async fetchMessages() {
@@ -111,8 +114,18 @@ export default {
         if (entries) entries.scrollTo({ top: entries.scrollHeight, behavior: 'smooth' });
       });
     },
+    toggleTheme() {
+      this.darkMode = !this.darkMode;
+      document.documentElement.dataset.theme = this.darkMode ? 'dark' : '';
+      localStorage.setItem('theme', this.darkMode ? 'dark' : 'light');
+    },
   },
-  mounted() { this.fetchMessages(); },
+  mounted() {
+    this.darkMode = localStorage.getItem('theme') === 'dark'
+        || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (this.darkMode) document.documentElement.dataset.theme = 'dark';
+    this.fetchMessages();
+  },
 };
 </script>
 
@@ -135,10 +148,67 @@ export default {
   --focus: #075e56;
   --focus-soft: rgba(8,127,115,.18);
   --danger: #b42318;
+  --bg-gradient: linear-gradient(145deg, #edfff9 0%, #fff8ed 54%, #e7f7ff 100%);
+  --panel-bg: rgba(255,255,255,.94);
+  --h1-color: #0b4038;
+  --version-badge: #8f321d;
+  --shadow-soft: rgba(18,78,66,.06);
+  --shadow-medium: rgba(22,88,74,.12);
+  --shadow-primary: rgba(13,148,136,.25);
+  --shadow-primary-hover: rgba(13,148,136,.32);
+  --btn-disabled-bg: #e4e7ec;
+  --btn-disabled-text: #667085;
+  --pre-bg: #12332e;
+  --pre-text: #effcf8;
+  --border-highlight: #8bc9bb;
+  --scrollbar-thumb: #7bb9ab;
+  --editor-highlight: rgba(255,255,255,.75);
+  --brand-gradient-end: #24a88f;
+  --badge-border: #e8b69f;
+  --count-border: #9bd8cb;
+  --icon-color: #9a3e26;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1a17;
+  --surface: #16241f;
+  --surface-soft: #1b2c26;
+  --surface-hover: #22362f;
+  --border: #2e4a42;
+  --text: #e4f2ee;
+  --muted: #9dbcb3;
+  --placeholder: #6d8a82;
+  --primary: #2bb3a3;
+  --primary-dark: #7fd8cb;
+  --primary-soft: #14332d;
+  --secondary: #f08a6b;
+  --secondary-soft: #3a211a;
+  --focus: #7fd8cb;
+  --focus-soft: rgba(43,179,163,.25);
+  --danger: #f97066;
+  --bg-gradient: linear-gradient(145deg, #0a1412 0%, #121916 54%, #0b1517 100%);
+  --panel-bg: rgba(22,36,31,.94);
+  --h1-color: #e4f2ee;
+  --version-badge: #f08a6b;
+  --shadow-soft: rgba(0,0,0,.25);
+  --shadow-medium: rgba(0,0,0,.4);
+  --shadow-primary: rgba(13,148,136,.15);
+  --shadow-primary-hover: rgba(13,148,136,.25);
+  --btn-disabled-bg: #22362f;
+  --btn-disabled-text: #6d8a82;
+  --pre-bg: #0a1412;
+  --pre-text: #9dbcb3;
+  --border-highlight: #7fd8cb;
+  --scrollbar-thumb: #2e4a42;
+  --editor-highlight: rgba(255,255,255,.05);
+  --brand-gradient-end: #176b5b;
+  --badge-border: #5c2415;
+  --count-border: #1a423a;
+  --icon-color: #f08a6b;
 }
 * { box-sizing: border-box; }
 html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-body { background: linear-gradient(145deg, #edfff9 0%, #fff8ed 54%, #e7f7ff 100%); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+body { background: var(--bg-gradient); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 button { font: inherit; }
 button:focus-visible, [contenteditable]:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .skip-link { position: fixed; z-index: 100; top: 8px; left: 8px; padding: 10px 14px; border-radius: 10px; color: #fff; background: var(--primary-dark); transform: translateY(-150%); transition: transform .18s ease; }
@@ -146,20 +216,23 @@ button:focus-visible, [contenteditable]:focus-visible, a:focus-visible { outline
 .app-shell { height: 100dvh; display: flex; flex-direction: column; padding: 18px; gap: 14px; }
 .app-header { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; min-height: 58px; padding: 0 4px; }
 .brand { display: flex; align-items: center; gap: 13px; min-width: 0; }
-.brand-mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; color: #fff; background: linear-gradient(145deg, var(--primary), #24a88f); box-shadow: 0 10px 26px rgba(8,127,115,.25); font-size: 21px; }
+.brand-mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; color: #fff; background: linear-gradient(145deg, var(--primary), var(--brand-gradient-end)); box-shadow: 0 10px 26px var(--shadow-primary); font-size: 21px; }
 h1, h2, h3, p { margin: 0; }
-h1 { color: #0b4038; font-size: 21px; font-weight: 750; letter-spacing: -.45px; }
+h1 { color: var(--h1-color); font-size: 21px; font-weight: 750; letter-spacing: -.45px; }
 .brand p { color: var(--muted); font-size: 13px; margin-top: 2px; }
-.version-badge { align-self: flex-start; padding: 6px 10px; border: 1px solid #e8b69f; border-radius: 999px; background: var(--secondary-soft); color: #8f321d; font: 700 11px/1 ui-monospace, monospace; }
+.version-badge { align-self: flex-start; padding: 6px 10px; border: 1px solid var(--badge-border); border-radius: 999px; background: var(--secondary-soft); color: var(--version-badge); font: 700 11px/1 ui-monospace, monospace; }
+.theme-toggle { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--border); border-radius: 12px; color: var(--primary-dark); background: var(--surface-soft); cursor: pointer; transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease, border-color 0.2s ease; margin-left: auto; }
+.theme-toggle:hover { color: #fff; background: var(--primary); border-color: var(--primary); transform: scale(1.05); }
+.theme-toggle i { font-size: 1.1rem; }
 .workspace { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 42%); gap: 14px; transition: grid-template-columns .35s cubic-bezier(.2,.8,.2,1); }
 .workspace.composer-collapsed { grid-template-columns: minmax(0, 1fr) 56px; }
-.entries-panel, .composer-panel { min-width: 0; min-height: 0; border: 1px solid var(--border); border-radius: 20px; background: rgba(255,255,255,.94); box-shadow: 0 18px 45px rgba(22,88,74,.12); overflow: hidden; }
+.entries-panel, .composer-panel { min-width: 0; min-height: 0; border: 1px solid var(--border); border-radius: 20px; background: var(--panel-bg); box-shadow: 0 18px 45px var(--shadow-medium); overflow: hidden; }
 .entries-panel { display: flex; flex-direction: column; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; min-height: 76px; padding: 15px 20px; border-bottom: 1px solid var(--border); background: linear-gradient(90deg, var(--surface), var(--surface-soft)); }
 .panel-heading h2 { font-size: 18px; font-weight: 740; letter-spacing: -.3px; }
 .eyebrow { display: block; margin-bottom: 3px; color: var(--primary-dark); font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
-.entry-count { display: grid; place-items: center; min-width: 30px; height: 30px; padding: 0 9px; border: 1px solid #9bd8cb; border-radius: 999px; background: var(--primary-soft); color: var(--primary-dark); font-size: 12px; font-weight: 800; }
-.entries-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; scroll-behavior: smooth; scrollbar-color: #7bb9ab transparent; }
+.entry-count { display: grid; place-items: center; min-width: 30px; height: 30px; padding: 0 9px; border: 1px solid var(--count-border); border-radius: 999px; background: var(--primary-soft); color: var(--primary-dark); font-size: 12px; font-weight: 800; }
+.entries-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; scroll-behavior: smooth; scrollbar-color: var(--scrollbar-thumb) transparent; }
 .entries-list { display: grid; gap: 12px; }
 .empty-state { height: 100%; min-height: 220px; display: grid; place-content: center; justify-items: center; padding: 24px; text-align: center; color: var(--muted); }
 .empty-illustration { display: grid; place-items: center; width: 68px; height: 68px; margin-bottom: 16px; border-radius: 22px; color: var(--primary-dark); background: linear-gradient(145deg, var(--primary-soft), var(--secondary-soft)); font-size: 30px; }
@@ -169,8 +242,8 @@ h1 { color: #0b4038; font-size: 21px; font-weight: 750; letter-spacing: -.45px; 
 .composer-content { height: 100%; display: flex; flex-direction: column; opacity: 1; transition: opacity .18s ease .12s; }
 .composer-panel.is-collapsed .composer-content { opacity: 0; pointer-events: none; transition-delay: 0s; }
 .composer-heading { padding-left: 22px; }
-.heading-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; color: #9a3e26; background: var(--secondary-soft); }
-.collapse-button { position: absolute; z-index: 5; top: 50%; left: 0; width: 32px; height: 58px; transform: translate(-50%, -50%); display: grid; place-items: center; border: 1px solid #83c5b6; border-radius: 11px; color: var(--primary-dark); background: #fff; box-shadow: 0 7px 20px rgba(22,88,74,.18); cursor: pointer; transition: color .2s ease, background .2s ease, transform .2s ease; }
+.heading-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; color: var(--icon-color); background: var(--secondary-soft); }
+.collapse-button { position: absolute; z-index: 5; top: 50%; left: 0; width: 32px; height: 58px; transform: translate(-50%, -50%); display: grid; place-items: center; border: 1px solid #83c5b6; border-radius: 11px; color: var(--primary-dark); background: var(--surface); box-shadow: 0 7px 20px var(--shadow-medium); cursor: pointer; transition: color .2s ease, background .2s ease, transform .2s ease; }
 .collapse-button:hover { color: #fff; background: var(--primary); transform: translate(-50%, -50%) scale(1.05); }
 .composer-panel.is-collapsed .collapse-button { left: 50%; }
 .entry-list-enter-active, .entry-list-leave-active { transition: opacity .22s ease, transform .22s ease; }
