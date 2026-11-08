@@ -302,6 +302,9 @@ export default {
   --badge-border: #e8b69f;
   --count-border: #9bd8cb;
   --icon-color: #9a3e26;
+  --undo-btn-bg: var(--primary-soft);
+  --undo-btn-bg-hover: var(--surface-hover);
+  --undo-btn-text: var(--pre-bg);
 }
 [data-theme="dark"] {
   color-scheme: dark;
@@ -340,6 +343,9 @@ export default {
   --badge-border: #5c2415;
   --count-border: #1a423a;
   --icon-color: #f08a6b;
+  --undo-btn-bg: var(--primary);
+  --undo-btn-bg-hover: var(--primary-dark);
+  --undo-btn-text: var(--bg);
 }
 * { box-sizing: border-box; }
 html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
@@ -379,10 +385,10 @@ h1 { color: var(--h1-color); font-size: 21px; font-weight: 750; letter-spacing: 
 @keyframes refresh-spin { to { transform: rotate(360deg); } }
 .undo-toast { position: fixed; z-index: 50; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px; border-radius: 14px; color: #fff; background: var(--pre-bg); box-shadow: 0 14px 34px var(--shadow-medium); font-size: 13px; }
 .undo-toast > .bi-trash3 { color: var(--secondary); }
-.undo-button { padding: 6px 14px; border: 0; border-radius: 9px; color: var(--pre-bg); background: var(--primary-soft); font-weight: 800; cursor: pointer; }
-.undo-button:hover { background: var(--surface); }
+.undo-button { padding: 6px 14px; border: 0; border-radius: 9px; color: var(--undo-btn-text); background: var(--undo-btn-bg); font-weight: 800; cursor: pointer; }
+.undo-button:hover { background: var(--undo-btn-bg-hover); }
 .toast-close { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; cursor: pointer; }
-.toast-close:hover { color: #fff; background: var(--editor-highlight); }
+.toast-close:hover { color: #fff; background: var(--placeholder); }
 .entries-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; scroll-behavior: smooth; scrollbar-color: var(--scrollbar-thumb) transparent; }
 .entries-list { display: grid; gap: 12px; }
 .empty-state { height: 100%; min-height: 220px; display: grid; place-content: center; justify-items: center; padding: 24px; text-align: center; color: var(--muted); }
