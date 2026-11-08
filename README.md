@@ -4,7 +4,8 @@
 * This facilitates copying text/image from one machine to another or between phone and computer quickly, intended to be used in a homelab environment with docker
 * Lightweight web application that does not consume much resource on the host server
 
-<img width="2842" height="1484" alt="image" src="https://github.com/user-attachments/assets/93945927-ee06-40ba-9196-c268fbec6683" />
+<img width="3220" height="1874" alt="Screenshot from 2026-11-08 01-00-14" src="https://github.com/user-attachments/assets/b2042c5a-c2aa-4849-bbf9-6de4b0d2eb28" />
+
 
 ## Prerequisites
 
