@@ -94,6 +94,7 @@ services:
 * Long entries are collapsed after about 20 lines (**Show more**). A deleted entry can be restored with **Undo** for a few seconds.
 * **Guide** (top right) opens a short in-app user guide.
 * Use the sun/moon button to switch between light and dark themes; your browser remembers the choice.
+* Pin important entries at the top of the list
 
 ## Command line (curl)
 

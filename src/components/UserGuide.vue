@@ -34,6 +34,7 @@
           <dl class="guide-controls">
             <dt><span class="chip chip-id">#12</span></dt><dd>Entry number. Click it to copy the <code>curl</code> command that prints this entry in a terminal.</dd>
             <dt><span class="chip"><i class="bi bi-terminal" aria-hidden="true"></i> Mono</span></dt><dd>Switch between monospace (CLI output) and normal text. Shared with everyone.</dd>
+            <dt><span class="chip chip-icon"><i class="bi bi-pin-angle" aria-hidden="true"></i></span></dt><dd>Pin the entry: Keeps this entry at the top of the list.</dd>
             <dt><span class="chip chip-icon"><i class="bi bi-copy" aria-hidden="true"></i></span></dt><dd>Copy the entry: formatted for documents and mail, plain text with line breaks for terminals.</dd>
             <dt><span class="chip chip-icon chip-danger"><i class="bi bi-trash3" aria-hidden="true"></i></span></dt><dd>Delete. Click <strong>Undo</strong> in the message at the bottom within 8 s to bring it back.</dd>
           </dl>
