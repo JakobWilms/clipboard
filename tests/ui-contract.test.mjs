@@ -100,10 +100,10 @@ test('saved entries panel has an accessible 3 s auto-refresh toggle', () => {
   assert.match(app, /clearInterval/);
 });
 
-test('newest entries are listed first', () => {
-  assert.match(server, /ORDER BY id DESC/);
-  assert.match(app, /this\.messages\.unshift\(message\)/);
-  assert.doesNotMatch(app, /this\.messages\.push\(message\)/);
+test('entries are sorted by pin status and newest first', () => {
+  assert.match(server, /ORDER BY is_pinned DESC, id DESC/);
+  assert.match(app, /this\.messages\.push\(message\)/);
+  assert.match(app, /this\.sortMessages/);
 });
 
 test('entry timestamps are returned as explicit UTC ISO strings', () => {

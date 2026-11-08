@@ -26,7 +26,7 @@ const RETENTION_SECONDS = resolveRetention(process.env.RETENTION_TIME);
 const PURGE_INTERVAL_MS = positiveInteger(process.env.PURGE_INTERVAL_MS, 60 * 60 * 1000);
 const RESTORE_WINDOW_SECONDS = positiveInteger(process.env.RESTORE_WINDOW_SECONDS, 8);
 const DELETED_ENTRY_PURGE_SECONDS = 10 * 60; // keep deleted data briefly for cleanup, but restore only during the UI undo window
-const ENTRY_COLUMNS = "id, message, mono, strftime('%Y-%m-%dT%H:%M:%SZ', created_at) AS created_at";
+const ENTRY_COLUMNS = "id, message, mono, is_pinned, strftime('%Y-%m-%dT%H:%M:%SZ', created_at) AS created_at";
 
 function resolveRetention(value) {
   if (value === undefined || String(value).trim() === '') return parseDuration(DEFAULT_RETENTION);
@@ -65,6 +65,7 @@ async function initDatabase() {
   const columns = (await all('PRAGMA table_info(messages)')).map((column) => column.name);
   if (!columns.includes('mono')) await run('ALTER TABLE messages ADD COLUMN mono INTEGER NOT NULL DEFAULT 0');
   if (!columns.includes('deleted_at')) await run('ALTER TABLE messages ADD COLUMN deleted_at DATETIME');
+  if (!columns.includes('is_pinned')) await run('ALTER TABLE messages ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0');
 }
 
 function enqueueWrite(task) {
@@ -74,7 +75,7 @@ function enqueueWrite(task) {
 }
 
 function toEntry(row) {
-  return { id: row.id, message: row.message, mono: Boolean(row.mono), created_at: row.created_at };
+  return { id: row.id, message: row.message, mono: Boolean(row.mono), is_pinned: Boolean(row.is_pinned), created_at: row.created_at };
 }
 
 function entryId(value) {
@@ -111,7 +112,7 @@ function purgeExpired() {
   return enqueueWrite(async () => {
     let removed = 0;
     if (RETENTION_SECONDS > 0) {
-      removed += (await run("DELETE FROM messages WHERE created_at < datetime('now', ?)", [`-${RETENTION_SECONDS} seconds`])).changes;
+      removed += (await run("DELETE FROM messages WHERE created_at < datetime('now', ?) AND is_pinned = 0", [`-${RETENTION_SECONDS} seconds`])).changes;
     }
     removed += (await run("DELETE FROM messages WHERE deleted_at IS NOT NULL AND deleted_at < datetime('now', ?)", [`-${DELETED_ENTRY_PURGE_SECONDS} seconds`])).changes;
     if (removed) {
@@ -207,7 +208,7 @@ app.get('/api/config', (req, res) => res.json({ retentionSeconds: RETENTION_SECO
 
 app.get('/api/messages', async (req, res) => {
   try {
-    const rows = await all(`SELECT ${ENTRY_COLUMNS} FROM messages WHERE deleted_at IS NULL ORDER BY id DESC`);
+    const rows = await all(`SELECT ${ENTRY_COLUMNS} FROM messages WHERE deleted_at IS NULL ORDER BY is_pinned DESC, id DESC`);
     return res.json(rows.map(toEntry));
   } catch {
     return res.status(500).json({ error: 'Unable to load entries' });
@@ -242,9 +243,14 @@ app.get('/api/messages/:file', (req, res, next) => {
 app.patch('/api/messages/:id', async (req, res) => {
   const id = entryId(req.params.id);
   if (id === null) return res.status(400).json({ error: 'Invalid entry id' });
-  if (typeof req.body?.mono !== 'boolean') return res.status(400).json({ error: 'Expected { "mono": true|false }' });
+  if (typeof req.body?.mono !== 'boolean' && typeof req.body?.is_pinned !== 'boolean') return res.status(400).json({ error: 'Expected boolean mono or is_pinned' });
   try {
-    const result = await run('UPDATE messages SET mono = ? WHERE id = ? AND deleted_at IS NULL', [req.body.mono ? 1 : 0, id]);
+    const updates = [];
+    const params = [];
+    if (typeof req.body.mono === 'boolean') { updates.push('mono = ?'); params.push(req.body.mono ? 1 : 0); }
+    if (typeof req.body.is_pinned === 'boolean') { updates.push('is_pinned = ?'); params.push(req.body.is_pinned ? 1 : 0); }
+    params.push(id);
+    const result = await run(`UPDATE messages SET ${updates.join(', ')} WHERE id = ? AND deleted_at IS NULL`, params);
     if (!result.changes) return res.status(404).json({ error: 'Entry not found' });
     return res.json(toEntry(await get(`SELECT ${ENTRY_COLUMNS} FROM messages WHERE id = ?`, [id])));
   } catch {

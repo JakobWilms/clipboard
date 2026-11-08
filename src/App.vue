@@ -52,8 +52,10 @@
               :message="message.message"
               :created-at="message.created_at"
               :mono="Boolean(message.mono)"
+              :is-pinned="Boolean(message.is_pinned)"
               @deleteMessage="deleteMessage"
               @toggleMono="toggleMono"
+              @togglePin="togglePin"
             />
           </TransitionGroup>
           <div v-else class="empty-state">
@@ -169,7 +171,8 @@ export default {
       if (this.autoRefresh && !document.hidden) this.fetchMessages();
     },
     addMessage(message) {
-      this.messages.unshift(message);
+      this.messages.push(message);
+      this.sortMessages();
       this.scrollToTop();
     },
     async deleteMessage(messageId) {
@@ -199,7 +202,8 @@ export default {
         const response = await fetch(`api/messages/${messageId}/restore`, { method: 'PUT' });
         if (!response.ok) throw new Error(`Restore failed (${response.status})`);
         const entry = await response.json();
-        this.messages = [...this.messages.filter((message) => message.id !== entry.id), entry].sort((a, b) => b.id - a.id);
+        this.messages = [...this.messages.filter((message) => message.id !== entry.id), entry];
+        this.sortMessages();
       } catch (error) {
         console.error('Unable to restore entry:', error);
       }
@@ -240,6 +244,34 @@ export default {
       this.darkMode = !this.darkMode;
       document.documentElement.dataset.theme = this.darkMode ? 'dark' : '';
       try { localStorage.setItem('theme', this.darkMode ? 'dark' : 'light'); } catch { /* storage unavailable */ }
+    },
+    async togglePin(messageId, isPinned) {
+      const target = this.messages.find((message) => message.id === messageId);
+      if (!target) return;
+
+      const previous = target.is_pinned;
+      target.is_pinned = isPinned;
+
+      this.sortMessages()
+
+      try {
+        const response = await fetch(`api/messages/${messageId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_pinned: isPinned }),
+        });
+        if (!response.ok) throw new Error(`Update failed (${response.status})`);
+      } catch (error) {
+        target.is_pinned = previous;
+        this.sortMessages();
+        console.error('Unable to update entry:', error);
+      }
+    },
+    sortMessages() {
+      this.messages.sort((a, b) => {
+        if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+        return b.id - a.id;
+      });
     },
   },
   mounted() {

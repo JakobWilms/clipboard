@@ -9,6 +9,9 @@
       <span v-if="curlCopied" class="meta-flash" aria-hidden="true">curl command copied</span>
     </header>
     <div class="entry-actions">
+      <button class="icon-button pin-button" type="button" :aria-label="isPinned ? 'Unpin' : 'Pin'" :title="isPinned ? 'Unpin entry' : 'Pin entry'" @click="$emit('togglePin', id, !isPinned)">
+        <i :class="isPinned ? 'bi bi-pin-angle-fill' : 'bi bi-pin-angle'" aria-hidden="true"></i>
+      </button>
       <button class="icon-button copy-button" type="button" aria-label="Copy entry" :title="copied ? 'Copied' : 'Copy entry'" @click="copyToClipboard">
         <i :class="copied ? 'bi bi-check-lg' : 'bi bi-copy'" aria-hidden="true"></i>
       </button>
@@ -34,8 +37,9 @@ export default {
     id: { type: Number, required: true },
     createdAt: { type: String, default: '' },
     mono: { type: Boolean, default: false },
+    isPinned: { type: Boolean, default: false },
   },
-  emits: ['deleteMessage', 'toggleMono'],
+  emits: ['deleteMessage', 'toggleMono', 'togglePin'],
   data() { return { copied: false, curlCopied: false, expanded: false, overflowing: false }; },
   computed: {
     safeMessage() {
@@ -127,14 +131,14 @@ export default {
 </script>
 
 <style>
-.entry-card { position: relative; min-height: calc(10px + 36px + 7px + 36px + 10px + 2px); padding: 17px 58px 14px 17px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); color: var(--text); text-align: left; box-shadow: 0 5px 14px var(--shadow-soft); transition: background .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }
+.entry-card { position: relative; min-height: 68px; padding: 17px 135px 14px 17px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); color: var(--text); text-align: left; box-shadow: 0 5px 14px var(--shadow-soft); transition: background .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }
 .entry-card:hover { background: var(--surface-hover); border-color: var(--border-highlight); transform: translateY(-2px); box-shadow: 0 10px 24px var(--shadow-medium); }
 .entry-content { min-height: 22px; font-size: 14px; line-height: 1.6; }
 .entry-content > :last-child { margin-bottom: 0; }
 .entry-content a { color: var(--primary-dark); text-decoration-thickness: 2px; text-underline-offset: 2px; }
 .entry-content img { display: block; max-width: 100%; height: auto; margin: 8px 0; border-radius: 10px; }
 .entry-content pre { max-width: 100%; overflow: auto; padding: 12px; border-radius: 9px; color: var(--pre-text); background: var(--pre-bg); }
-.entry-actions { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 7px; }
+.entry-actions { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: row; gap: 7px; }
 .icon-button { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid var(--border); border-radius: 10px; color: var(--primary-dark); background: var(--surface-soft); cursor: pointer; transition: color .18s ease, background .18s ease, transform .18s ease; }
 .icon-button:hover { color: #fff; background: var(--primary); transform: scale(1.05); }
 .copy-button:has(.bi-check-lg) { color: #fff; background: var(--primary); }
@@ -153,4 +157,5 @@ export default {
 .entry-card.is-mono .entry-content { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; tab-size: 4; }
 .expand-toggle { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--primary-dark); background: var(--surface-soft); font-size: 12px; font-weight: 700; cursor: pointer; }
 .expand-toggle:hover { color: #fff; background: var(--primary); border-color: var(--primary); }
+.pin-button:has(.bi-pin-angle-fill) { color: #fff; background: var(--primary); }
 </style>
