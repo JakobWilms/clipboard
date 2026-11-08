@@ -137,6 +137,8 @@ Current application version: **1.4.0**. The two minor releases add dark mode and
 
 The dependency lockfile pins patched releases for all known production advisories. In particular, Express's transitive `body-parser` dependency is overridden to `2.4.0`, preventing unauthenticated denial of service through malformed compressed request bodies (GHSA-27r3-jxmh-p828).
 
+The Docker build runs tests and frontend compilation on BuildKit's native build platform, then installs production dependencies separately for each target architecture. This keeps the published `linux/amd64` and `linux/arm64` variants native while avoiding emulated test execution.
+
 ## License
 
 This project is licensed under the GNU GPLv3 License.
