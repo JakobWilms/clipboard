@@ -95,6 +95,7 @@ services:
 * **Guide** (top right) opens a short in-app user guide.
 * Use the sun/moon button to switch between light and dark themes; your browser remembers the choice.
 * Pin important entries at the top of the list
+* Use the search field to filter for specific content
 
 ## Command line (curl)
 

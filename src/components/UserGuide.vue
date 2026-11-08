@@ -23,6 +23,7 @@
           <h3><i class="bi bi-collection" aria-hidden="true"></i> Saved entries</h3>
           <ul>
             <li>Newest entries are on top. <strong>Auto-refresh</strong> reloads the list every 3 s so entries from other machines appear; your browser remembers the setting.</li>
+            <li><strong>Search</strong> can be used to filter for specific content.</li>
             <li>Entries longer than about 20 lines are collapsed: use <strong>Show more</strong> / <strong>Show less</strong>.</li>
             <li v-if="retention && retention !== 'off'">Entries are deleted automatically after <strong>{{ retention }}</strong>.</li>
             <li v-else-if="retention === 'off'">Entries are kept until you delete them.</li>
