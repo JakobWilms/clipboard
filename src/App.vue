@@ -9,20 +9,38 @@
           <p>Your shared clipboard, ready everywhere.</p>
         </div>
       </div>
-      <span class="version-badge" aria-label="Application version">v{{ version }}</span>
-      <button class="theme-toggle" type="button" :aria-label="darkMode ? 'Switch to light mode' : 'Switch to dark mode'" @click="toggleTheme">
-        <i :class="darkMode ? 'bi bi-sun' : 'bi bi-moon'" aria-hidden="true"></i>
-      </button>
+      <div class="header-actions">
+        <button class="guide-button" type="button" aria-haspopup="dialog" @click="$refs.guide.open()">
+          <i class="bi bi-question-circle" aria-hidden="true"></i> Guide
+        </button>
+        <span class="version-badge" aria-label="Application version">v{{ version }}</span>
+        <button class="theme-toggle" type="button" :aria-label="darkMode ? 'Switch to light mode' : 'Switch to dark mode'" @click="toggleTheme">
+          <i :class="darkMode ? 'bi bi-sun' : 'bi bi-moon'" aria-hidden="true"></i>
+        </button>
+      </div>
     </header>
 
     <section class="workspace" :class="{ 'composer-collapsed': composerCollapsed }">
       <section id="saved-entries" class="entries-panel" aria-labelledby="entries-title" tabindex="-1">
         <div class="panel-heading">
           <div>
-            <span class="eyebrow">Library</span>
+            <span class="eyebrow">Library<template v-if="retention && retention !== 'off'"> · kept {{ retention }}</template></span>
             <h2 id="entries-title">Saved entries</h2>
           </div>
-          <span class="entry-count" :aria-label="`${messages.length} saved entries`">{{ messages.length }}</span>
+          <div class="heading-actions">
+            <button
+              class="refresh-toggle"
+              :class="{ 'is-active': autoRefresh }"
+              type="button"
+              :aria-pressed="autoRefresh"
+              :title="autoRefresh ? 'Auto-refresh on (every 3 s) — click to stop' : 'Auto-refresh off — click to refresh every 3 s'"
+              @click="toggleAutoRefresh"
+            >
+              <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+              <span>Auto-refresh</span>
+            </button>
+            <span class="entry-count" :aria-label="`${messages.length} saved entries`">{{ messages.length }}</span>
+          </div>
         </div>
 
         <div class="entries-scroll" ref="chatMessages" aria-live="polite">
@@ -33,7 +51,9 @@
               :id="message.id"
               :message="message.message"
               :created-at="message.created_at"
+              :mono="Boolean(message.mono)"
               @deleteMessage="deleteMessage"
+              @toggleMono="toggleMono"
             />
           </TransitionGroup>
           <div v-else class="empty-state">
@@ -67,64 +87,179 @@
         </div>
       </aside>
     </section>
+    <UserGuide ref="guide" :retention="retention" />
+    <div v-if="undoId !== null" class="undo-toast" role="status">
+      <i class="bi bi-trash3" aria-hidden="true"></i>
+      <span>Entry #{{ undoId }} deleted</span>
+      <button class="undo-button" type="button" @click="undoDelete">Undo</button>
+      <button class="toast-close" type="button" aria-label="Dismiss" @click="dismissUndo"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+    </div>
   </main>
 </template>
 
 <script>
 import ChatInput from './components/ChatInput.vue';
 import ChatMessage from './components/ChatMessage.vue';
+import UserGuide from './components/UserGuide.vue';
 
 const APP_VERSION = __APP_VERSION__;
+const AUTO_REFRESH_MS = 3000;
+const AUTO_REFRESH_KEY = 'clippy.autoRefresh';
+const UNDO_TOAST_MS = 8000;
+
+function readAutoRefreshSetting() {
+  try { return window.localStorage.getItem(AUTO_REFRESH_KEY) === '1'; } catch { return false; }
+}
+
+function writeAutoRefreshSetting(enabled) {
+  try { window.localStorage.setItem(AUTO_REFRESH_KEY, enabled ? '1' : '0'); } catch { /* storage unavailable */ }
+}
 
 export default {
   name: 'App',
-  components: { ChatInput, ChatMessage },
+  components: { ChatInput, ChatMessage, UserGuide },
   data() {
-    return { messages: [], composerCollapsed: false, version: APP_VERSION, darkMode: false };
+    return {
+      messages: [],
+      composerCollapsed: false,
+      version: APP_VERSION,
+      darkMode: false,
+      autoRefresh: readAutoRefreshSetting(),
+      retention: '',
+      undoId: null,
+    };
+  },
+  created() {
+    this.refreshTimer = null;
+    this.undoTimer = null;
+    this.fetchInFlight = false;
   },
   methods: {
     async fetchMessages() {
+      if (this.fetchInFlight) return;
+      this.fetchInFlight = true;
       try {
-        const response = await fetch('/api/messages');
+        const response = await fetch('api/messages', { cache: 'no-store' });
         if (!response.ok) throw new Error(`Load failed (${response.status})`);
-        this.messages = await response.json();
+        const rows = await response.json();
+        const signature = (list) => list.map((entry) => `${entry.id}:${entry.mono ? 1 : 0}`).join(',');
+        if (signature(rows) !== signature(this.messages)) this.messages = rows;
       } catch (error) {
         console.error('Unable to fetch entries:', error);
+      } finally {
+        this.fetchInFlight = false;
       }
     },
+    toggleAutoRefresh() {
+      this.autoRefresh = !this.autoRefresh;
+      writeAutoRefreshSetting(this.autoRefresh);
+      this.applyAutoRefresh();
+      if (this.autoRefresh) this.fetchMessages();
+    },
+    applyAutoRefresh() {
+      window.clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+      if (this.autoRefresh) {
+        this.refreshTimer = window.setInterval(() => {
+          if (!document.hidden) this.fetchMessages();
+        }, AUTO_REFRESH_MS);
+      }
+    },
+    onVisibilityChange() {
+      if (this.autoRefresh && !document.hidden) this.fetchMessages();
+    },
     addMessage(message) {
-      this.messages.push(message);
-      this.scrollToBottom();
+      this.messages.unshift(message);
+      this.scrollToTop();
     },
     async deleteMessage(messageId) {
       try {
-        const response = await fetch(`/api/messages/${messageId}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error(`Delete failed (${response.status})`);
+        const response = await fetch(`api/messages/${messageId}`, { method: 'DELETE' });
+        if (!response.ok && response.status !== 404) throw new Error(`Delete failed (${response.status})`);
         this.messages = this.messages.filter((message) => message.id !== messageId);
+        if (response.ok) this.offerUndo(messageId);
       } catch (error) {
         console.error('Unable to delete entry:', error);
       }
     },
+    offerUndo(messageId) {
+      window.clearTimeout(this.undoTimer);
+      this.undoId = messageId;
+      this.undoTimer = window.setTimeout(this.dismissUndo, UNDO_TOAST_MS);
+    },
+    dismissUndo() {
+      window.clearTimeout(this.undoTimer);
+      this.undoId = null;
+    },
+    async undoDelete() {
+      const messageId = this.undoId;
+      this.dismissUndo();
+      if (messageId === null) return;
+      try {
+        const response = await fetch(`api/messages/${messageId}/restore`, { method: 'PUT' });
+        if (!response.ok) throw new Error(`Restore failed (${response.status})`);
+        const entry = await response.json();
+        this.messages = [...this.messages.filter((message) => message.id !== entry.id), entry].sort((a, b) => b.id - a.id);
+      } catch (error) {
+        console.error('Unable to restore entry:', error);
+      }
+    },
+    async toggleMono(messageId, mono) {
+      const target = this.messages.find((message) => message.id === messageId);
+      if (!target) return;
+      const previous = target.mono;
+      target.mono = mono;
+      try {
+        const response = await fetch(`api/messages/${messageId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mono }),
+        });
+        if (!response.ok) throw new Error(`Update failed (${response.status})`);
+      } catch (error) {
+        target.mono = previous;
+        console.error('Unable to update entry:', error);
+      }
+    },
+    async fetchConfig() {
+      try {
+        const response = await fetch('api/config');
+        if (response.ok) this.retention = (await response.json()).retention || '';
+      } catch { /* optional */ }
+    },
     toggleComposer() {
       this.composerCollapsed = !this.composerCollapsed;
     },
-    scrollToBottom() {
+    scrollToTop() {
       this.$nextTick(() => {
         const entries = this.$refs.chatMessages;
-        if (entries) entries.scrollTo({ top: entries.scrollHeight, behavior: 'smooth' });
+        if (entries) entries.scrollTo({ top: 0, behavior: 'smooth' });
       });
     },
     toggleTheme() {
       this.darkMode = !this.darkMode;
       document.documentElement.dataset.theme = this.darkMode ? 'dark' : '';
-      localStorage.setItem('theme', this.darkMode ? 'dark' : 'light');
+      try { localStorage.setItem('theme', this.darkMode ? 'dark' : 'light'); } catch { /* storage unavailable */ }
     },
   },
   mounted() {
-    this.darkMode = localStorage.getItem('theme') === 'dark'
-        || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    if (this.darkMode) document.documentElement.dataset.theme = 'dark';
+    try {
+      const savedTheme = localStorage.getItem('theme');
+      this.darkMode = savedTheme === 'dark'
+          || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    } catch {
+      this.darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    document.documentElement.dataset.theme = this.darkMode ? 'dark' : '';
     this.fetchMessages();
+    this.fetchConfig();
+    this.applyAutoRefresh();
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+  },
+  beforeUnmount() {
+    window.clearInterval(this.refreshTimer);
+    window.clearTimeout(this.undoTimer);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
   },
 };
 </script>
@@ -220,10 +355,13 @@ button:focus-visible, [contenteditable]:focus-visible, a:focus-visible { outline
 h1, h2, h3, p { margin: 0; }
 h1 { color: var(--h1-color); font-size: 21px; font-weight: 750; letter-spacing: -.45px; }
 .brand p { color: var(--muted); font-size: 13px; margin-top: 2px; }
-.version-badge { align-self: flex-start; padding: 6px 10px; border: 1px solid var(--badge-border); border-radius: 999px; background: var(--secondary-soft); color: var(--version-badge); font: 700 11px/1 ui-monospace, monospace; }
-.theme-toggle { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--border); border-radius: 12px; color: var(--primary-dark); background: var(--surface-soft); cursor: pointer; transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease, border-color 0.2s ease; margin-left: auto; }
+.header-actions { align-self: flex-start; display: flex; align-items: center; gap: 10px; }
+.guide-button { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 1px solid var(--count-border); border-radius: 999px; color: var(--primary-dark); background: var(--panel-bg); font-size: 12px; font-weight: 700; cursor: pointer; transition: color .18s ease, background .18s ease; }
+.guide-button:hover { color: #fff; background: var(--primary); border-color: var(--primary); }
+.version-badge { padding: 6px 10px; border: 1px solid var(--badge-border); border-radius: 999px; background: var(--secondary-soft); color: var(--version-badge); font: 700 11px/1 ui-monospace, monospace; }
+.theme-toggle { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 999px; color: var(--primary-dark); background: var(--surface-soft); cursor: pointer; transition: color .2s ease, background .2s ease, transform .2s ease, border-color .2s ease; }
 .theme-toggle:hover { color: #fff; background: var(--primary); border-color: var(--primary); transform: scale(1.05); }
-.theme-toggle i { font-size: 1.1rem; }
+.theme-toggle i { font-size: 1rem; }
 .workspace { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 42%); gap: 14px; transition: grid-template-columns .35s cubic-bezier(.2,.8,.2,1); }
 .workspace.composer-collapsed { grid-template-columns: minmax(0, 1fr) 56px; }
 .entries-panel, .composer-panel { min-width: 0; min-height: 0; border: 1px solid var(--border); border-radius: 20px; background: var(--panel-bg); box-shadow: 0 18px 45px var(--shadow-medium); overflow: hidden; }
@@ -232,6 +370,19 @@ h1 { color: var(--h1-color); font-size: 21px; font-weight: 750; letter-spacing: 
 .panel-heading h2 { font-size: 18px; font-weight: 740; letter-spacing: -.3px; }
 .eyebrow { display: block; margin-bottom: 3px; color: var(--primary-dark); font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
 .entry-count { display: grid; place-items: center; min-width: 30px; height: 30px; padding: 0 9px; border: 1px solid var(--count-border); border-radius: 999px; background: var(--primary-soft); color: var(--primary-dark); font-size: 12px; font-weight: 800; }
+.heading-actions { display: flex; align-items: center; gap: 10px; }
+.refresh-toggle { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); background: var(--surface-soft); font-size: 12px; font-weight: 700; cursor: pointer; transition: color .18s ease, background .18s ease, border-color .18s ease; }
+.refresh-toggle:hover { color: var(--primary-dark); border-color: var(--border-highlight); background: var(--surface-hover); }
+.refresh-toggle.is-active { color: #fff; border-color: var(--primary); background: var(--primary); }
+.refresh-toggle.is-active:hover { background: var(--primary-dark); }
+.refresh-toggle.is-active .bi-arrow-repeat { animation: refresh-spin 3s linear infinite; }
+@keyframes refresh-spin { to { transform: rotate(360deg); } }
+.undo-toast { position: fixed; z-index: 50; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px; border-radius: 14px; color: #fff; background: var(--pre-bg); box-shadow: 0 14px 34px var(--shadow-medium); font-size: 13px; }
+.undo-toast > .bi-trash3 { color: var(--secondary); }
+.undo-button { padding: 6px 14px; border: 0; border-radius: 9px; color: var(--pre-bg); background: var(--primary-soft); font-weight: 800; cursor: pointer; }
+.undo-button:hover { background: var(--surface); }
+.toast-close { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; cursor: pointer; }
+.toast-close:hover { color: #fff; background: var(--editor-highlight); }
 .entries-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; scroll-behavior: smooth; scrollbar-color: var(--scrollbar-thumb) transparent; }
 .entries-list { display: grid; gap: 12px; }
 .empty-state { height: 100%; min-height: 220px; display: grid; place-content: center; justify-items: center; padding: 24px; text-align: center; color: var(--muted); }
@@ -247,7 +398,9 @@ h1 { color: var(--h1-color); font-size: 21px; font-weight: 750; letter-spacing: 
 .collapse-button:hover { color: #fff; background: var(--primary); transform: translate(-50%, -50%) scale(1.05); }
 .composer-panel.is-collapsed .collapse-button { left: 50%; }
 .entry-list-enter-active, .entry-list-leave-active { transition: opacity .22s ease, transform .22s ease; }
-.entry-list-enter-from, .entry-list-leave-to { opacity: 0; transform: translateY(8px); }
+.entry-list-enter-from { opacity: 0; transform: translateY(-8px); }
+.entry-list-leave-to { opacity: 0; transform: translateY(8px); }
+.entry-list-move { transition: transform .22s ease; }
 @media (max-width: 760px) {
   html, body, #app { overflow: auto; }
   .app-shell { min-height: 100dvh; height: auto; padding: 10px; }

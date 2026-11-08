@@ -69,6 +69,66 @@
 4. **Open your browser:**
    Navigate to `http://<server-url>:3000` to see your application in action.
 
+## Keep your entries
+
+Entries are stored in `/data/database.sqlite` inside the container. Mount a volume so they survive container re-creation:
+
+```yaml
+services:
+  clipboard:
+    image: sudipthegreat/clipboard:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    environment:
+      RETENTION_TIME: 10d   # optional, see Configuration
+```
+
+## Using it
+
+* Paste or type in **Compose**, then click **Send entry** or press `Ctrl`+`Enter` (`⌘`+`Enter` on macOS). Newest entries are listed first.
+* **Auto-refresh** (top right of the list) reloads the list every 3 s so entries sent from other devices appear on their own.
+* Each entry shows its number (`#12`), its time and a **Mono** toggle. Text that looks like terminal or config output is shown in monospace automatically.
+* Long entries are collapsed after about 20 lines (**Show more**). A deleted entry can be restored with **Undo** for a few seconds.
+* **Guide** (top right) opens a short in-app user guide.
+* Use the sun/moon button to switch between light and dark themes; your browser remembers the choice.
+
+## Command line (curl)
+
+```bash
+some-command | curl -s -T - http://<server>:3000/api/text     # save output, prints "#13"
+curl -s http://<server>:3000/api/latest.txt                     # print the newest entry
+curl -s http://<server>:3000/api/messages/13.txt                # print entry #13
+```
+
+Clicking an entry's `#id` in the web page copies the matching `curl` command.
+
+## Behind a reverse proxy
+
+The web app uses relative URLs, so it can be served under a path prefix such as `https://host/clipboard/`. Strip the prefix in the proxy and redirect `/clipboard` to `/clipboard/`. Example with Traefik labels:
+
+```yaml
+labels:
+  - "traefik.enable=true"
+  - "traefik.http.routers.clipboard.rule=Host(`host.example`) && PathPrefix(`/clipboard`)"
+  - "traefik.http.routers.clipboard.middlewares=clipboard-slash,clipboard-strip"
+  - "traefik.http.middlewares.clipboard-slash.redirectregex.regex=^(https?://[^/]+/clipboard)$$"
+  - "traefik.http.middlewares.clipboard-slash.redirectregex.replacement=$${1}/"
+  - "traefik.http.middlewares.clipboard-strip.stripprefix.prefixes=/clipboard"
+  - "traefik.http.services.clipboard.loadbalancer.server.port=3000"
+```
+
+## Configuration
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `RETENTION_TIME` | `0` (keep forever) | Delete entries older than this: `90m`, `36h`, `10d`, `2w`; a bare number means days |
+| `MAX_ENTRY_BYTES` | `10485760` | Maximum size of one entry |
+| `MAX_IMAGE_BYTES` | `5242880` | Maximum size of one embedded image |
+| `MAX_DATABASE_BYTES` | `262144000` | Total storage limit |
+| `PORT` | `3000` | Listening port |
+
 ## License
 
 This project is licensed under the GNU GPLv3 License.
