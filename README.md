@@ -11,10 +11,10 @@
 - Docker must be installed on your machine. You can download and install Docker from the [official Docker website](https://www.docker.com/get-started).
 
 ## QUICK DEPLOY
-- Latest code is available as image on docker hub, self host it as follows
+- The `latest` Docker Hub image is published for both `linux/amd64` and `linux/arm64`; Docker automatically pulls the correct architecture for the host.
 
    ```bash
-   docker run -d -p 3000:3000 --name clippy sudipthegreat:clipboard
+   docker run -d -p 3000:3000 --name clippy sudipthegreat/clipboard:latest
    ```
 
    
